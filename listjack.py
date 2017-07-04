@@ -8,14 +8,6 @@ from texttable import Texttable
 import ssdeep
 from progress.bar import Bar
 
-'''TO-DOs
-- generate web ui + selection boxes + list export
-    - manually look at each image and choose which ones
-        - gives you a list of urls+can export images to directory and delete the rest
-- compare clickjack to blank clickjack template using fuzzyhash for easy triage
-- remove static paths
-'''
-
 banner = r''' ___   ___                ___             ___
 |   | |___|         ___  |___|           |   |
 |   |  ___ ______ _|   |_ ___ ______ ____|_  |__
