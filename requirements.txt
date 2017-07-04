@@ -1,0 +1,6 @@
+selenium
+pyvirtualdisplay
+ssdeep
+xattr
+texttable
+progress
