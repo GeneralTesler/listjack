@@ -62,4 +62,5 @@ Example output
 
 ## Changelog
 
+- 7/17/2017 - moved progress bar from processing to requesting; no longer processes blank lines in the input file; changed local server port from 8080 to 8081 since 8080 is more commonly used by Burp
 - 7/4/2017 - initial commit

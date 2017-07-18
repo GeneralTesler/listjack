@@ -8,6 +8,14 @@ from texttable import Texttable
 import ssdeep
 from progress.bar import Bar
 
+'''TO-DOs
+- generate web ui + selection boxes + list export
+    - manually look at each image and choose which ones
+        - gives you a list of urls+can export images to directory and delete the rest
+- compare clickjack to blank clickjack template using fuzzyhash for easy triage
+- remove static paths
+'''
+
 banner = r''' ___   ___                ___             ___
 |   | |___|         ___  |___|           |   |
 |   |  ___ ______ _|   |_ ___ ______ ____|_  |__
@@ -48,7 +56,7 @@ def startserver():
         os.makedirs(cwd+'/server')
     os.chdir(cwd+'/server')
     global httpd
-    httpd = SocketServer.TCPServer(('127.0.0.1', 8080), MyHandler)
+    httpd = SocketServer.TCPServer(('127.0.0.1', 8081), MyHandler)
     thread = threading.Thread(target = httpd.serve_forever)
     thread.daemon = True
     thread.start()
@@ -77,7 +85,8 @@ def readin(filename):
         sys.exit()
     with open(filename,'r') as f:
         for line in f:
-            urls.append(line.strip())
+            if len(line) != 1:
+                urls.append(line.strip())
 
 def cleanup():
 #when done, kill the driver, display, and server then clean files
@@ -104,9 +113,10 @@ def requestloop(urls):
     if not os.path.exists(cwd+imgdir):
         os.makedirs(cwd+imgdir)
     i = 1
+    bar = Bar('[+] Requesting pages', max=len(urls))
     for url in urls:
         writelocalfile(url)
-        driver.get('http://127.0.0.1:8080/cj.html')
+        driver.get('http://127.0.0.1:8081/cj.html')
         name = str(i)+'.png'
         try:
             driver.get_screenshot_as_file(cwd+imgdir+'/'+name)
@@ -114,6 +124,8 @@ def requestloop(urls):
             print '[-] Error saving screenshot for: '+url
         xattr.setxattr(cwd+imgdir+'/'+name, 'user.url', url)
         i += 1
+        bar.next()
+    bar.finish()
 
 def comparetobaseline(image):
     basehash = ssdeep.hash_from_file(cwd+'/baseline.png')
@@ -124,16 +136,13 @@ def comparetobaseline(image):
     return comparison
 
 def processresults():
+    print '[+] Processing results'
     results = Texttable()
     results.add_row(['File', 'Likeness', 'url'])
-    i = len(os.listdir(cwd+'/img_'+epoch))
-    bar = Bar('[+] Processing', max=i)
     for image in os.listdir(cwd+'/img_'+epoch):
         url = xattr.getxattr(cwd+'/img_'+epoch+'/'+image,'user.url')
         comp = comparetobaseline(image)
         results.add_row([image, comp, url])
-        bar.next()
-    bar.finish()
     print '[+] Printing results\n'
     print results.draw()
         
