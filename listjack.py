@@ -1,11 +1,10 @@
 #!/usr/bin/env python
-import os, sys, time, shutil, atexit
+import os, sys, time, shutil
 from selenium import webdriver
 from pyvirtualdisplay import Display
 import SocketServer, SimpleHTTPServer, threading
-import  xattr
+import xattr, ssdeep
 from texttable import Texttable
-import ssdeep
 from progress.bar import Bar
 
 banner = r''' ___   ___                ___             ___
@@ -67,7 +66,7 @@ def makebrowser():
 
 def writelocalfile(url):
 #writes the URL to the file, overwrites existing file
-    template = '<html>Clickjacked!<iframe src="%s" width="99%%" height="99%%"></iframe></html>' % url
+    template = '<html>Clickjacking %s <iframe src="%s" width="99%%" height="99%%"></iframe></html>' % (url,url)
     with open(cwd+'/server/cj.html','w') as f:
         f.write(template)
 
@@ -105,7 +104,7 @@ def requestloop(urls):
     if not os.path.exists(cwd+imgdir):
         os.makedirs(cwd+imgdir)
     i = 1
-    bar = Bar('[+] Requesting pages', max=len(urls))
+    bar = Bar('[+] Progress', fill=(u'\u2588'), index=0, max=len(urls))
     for url in urls:
         writelocalfile(url)
         driver.get('http://127.0.0.1:8081/cj.html')
@@ -115,8 +114,13 @@ def requestloop(urls):
         except:
             print '[-] Error saving screenshot for: '+url
         xattr.setxattr(cwd+imgdir+'/'+name, 'user.url', url)
-        i += 1
         bar.next()
+        if i % 5 == 0:
+            driver.quit()
+            display.stop()
+            makebrowser()
+        i += 1
+            
     bar.finish()
 
 def comparetobaseline(image):
@@ -137,12 +141,8 @@ def processresults():
         results.add_row([image, comp, url])
     print '[+] Printing results\n'
     print results.draw()
-        
 
-atexit.register(cleanup)
-
-#main   
-if __name__ == '__main__':
+def main():
     print banner
     readin(sys.argv[1])
     
@@ -157,3 +157,12 @@ if __name__ == '__main__':
     print '[+] Attempting to jack'
     requestloop(urls)
     processresults()
+    cleanup()
+
+#main   
+if __name__ == '__main__':
+    try:
+        main()
+    except :
+        print '[-] Quitting early'
+        cleanup()
